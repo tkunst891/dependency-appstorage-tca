@@ -64,7 +64,7 @@ extension DependencySettings {
         .init()
     }
     public func set<Value, Action>(_ keyPath: ReferenceWritableKeyPath<Self, Value>, to value: Value) -> Effect<Action> {
-        return .fireAndForget { () async in
+        return .run { _ in
             self[keyPath: keyPath] = value
         }
     }
