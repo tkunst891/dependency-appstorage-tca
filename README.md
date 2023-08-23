@@ -33,7 +33,7 @@ case .enableSoundButtonPressed:
     return MySettings.shared.set(\.isSoundEnabled, to: true)
 }
 ```
-The Effect returned by the `set` method is a `.fireAndForget` Effect, which will be executed by the Store.
+The Effect returned by the `set` method is a `.run` Effect, which will be executed by the Store.
 
 ## Using BindableState to edit user settings
 If you use a `BindingReducer`and `BindableState` to let the user edit some settings, you could do this in the following way:
