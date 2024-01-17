@@ -35,11 +35,12 @@ case .enableSoundButtonPressed:
 ```
 The Effect returned by the `set` method is a `.run` Effect, which will be executed by the Store.
 
-## Using BindableState to edit user settings
-If you use a `BindingReducer`and `BindableState` to let the user edit some settings, you could do this in the following way:
+## Using BindingReducer to edit user settings
+If you use a `BindingReducer` to let the user edit some settings, you could do this in the following way:
 ```swift
+@ObservableState
 struct State {
-    @BindableState username: String = MySettings.shared.userName
+		var username: String = MySettings.shared.userName
     ... other state
 }
 enum Action: BindableAction {
@@ -47,7 +48,7 @@ enum Action: BindableAction {
     ... other actions
 }
 
-var body: some ReducerProtocol<State, Action> {
+var body: some ReducerOf<Self> {
     BindingReducer()
     Reduce { state, action in
         switch action {
@@ -61,16 +62,16 @@ This way, any time the user changes the value in the form, the reducer catches t
 
 This can be further simplified, as the library provides a higher-level BindingReducer:
 ```swift
-var body: some ReducerProtocol<State, Action> {
+var body: some ReducerOf<Self> {
     BindingReducer()
-        .toAppStorage(from: \.$username, to: \MySettings.username)
+			.toAppStorage(from: \.username, to: \MySettings.username)
 ```
 The `.toAppStorage` methods can be chained:
 ```swift
-var body: some ReducerProtocol<State, Action> {
+var body: some ReducerOf<Self> {
     BindingReducer()
-        .toAppStorage(from: \.$username, to: \MySettings.username)
-        .toAppStorage(from: \.$isSoundEnabled, to: \MySettings.isSoundEnabled)
+			.toAppStorage(from: \.username, to: \MySettings.username)
+			.toAppStorage(from: \.isSoundEnabled, to: \MySettings.isSoundEnabled)
 ```
 
 ## Synchronizing State with AppStorage
@@ -87,16 +88,17 @@ But this is not a good solution:
 
 A better solution is to have an ordinary variable in your State, which always reflects the value of the corresponding AppStorage variable.
 
-The library provides a way to create a long-lived Effect which automatically synchronizes some `BindableState` with an AppStorage variable. It takes advantage of the fact that @Dependency.AppStorage provides a projected value which is an AsyncStream.
+The library provides a way to create a long-lived Effect which automatically synchronizes some state with an AppStorage variable. It takes advantage of the fact that @Dependency.AppStorage provides a projected value which is an AsyncStream.
 ```swift
-MySettings.shared.$isSoundEnabled.bind(to: \.$isSoundEnabled)
+MySettings.shared.$isSoundEnabled.bind(to: \.isSoundEnabled)
 ```
-The `.bind` method returns a long-lived Effect of type `.run` which will send a `.binding(.set(\.$isSoundEnabled, newValue))` action, anytime the AppStorage variable changes its value.
+The `.bind` method returns a long-lived Effect of type `.run` which will send a `.binding(.set(\.isSoundEnabled, newValue))` action, anytime the AppStorage variable changes its value.
 
 So the setup of a feature reducer which wants to synchronize some state to an AppStorage variable looks like this:
 ```swift
+@ObservableState
 struct State {
-    @BindableState isSoundEnabled: String = MySettings.shared.isSoundEnabled
+		var isSoundEnabled: String = MySettings.shared.isSoundEnabled
     ... other state
 }
 enum Action: BindableAction {
@@ -105,12 +107,12 @@ enum Action: BindableAction {
     ... other actions
 }
 
-var body: some ReducerProtocol<State, Action> {
+var body: some ReducerOf<Self> {
     BindingReducer()
     Reduce { state, action in
         switch action {
         case .bindSettings:
-            return MySettings.shared.$isSoundEnabled.bind(to: \.$isSoundEnabled)
+            return MySettings.shared.$isSoundEnabled.bind(to: \.isSoundEnabled)
             ... other cases
         }
     }
@@ -127,7 +129,7 @@ If you want to synchronize more than one setting to your State, use the `.merge`
 ```swift
 case .bindSettings:
     return .merge(
-        MySettings.shared.$isSoundEnabled.bind(to: \.$isSoundEnabled),
-        MySettings.shared.$username.bind(to: \.$username)
+        MySettings.shared.$isSoundEnabled.bind(to: \.isSoundEnabled),
+        MySettings.shared.$username.bind(to: \.username)
     )
 ```
